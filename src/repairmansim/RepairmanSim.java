@@ -16,14 +16,14 @@ import java.util.*;
 public class RepairmanSim {
 
     //The number of machines to fix before ending the simulation
-    private static final int stopAtMachinesFixed = 100;
+    private static final int stopAtMachinesFixed = 10000;
     //Machine failure rate
     private static final double lambda = 0.4;
     //Repairman fix rate
     private static final double mu = 0.6;
     //Number of machines
     private static final int c = 4;
-    //Number of repairmen (for scalability purposes only)
+    //Number of repairmen
     private static final int r = 1;
 
     //The current simulation time
@@ -38,6 +38,7 @@ public class RepairmanSim {
 	}
     }
     
+    //Holds the list of repairmen to use in the simulation
     private static final List<Repairman> repairmen = new ArrayList<Repairman>();
     static {
 	//Initialize the repairmen to use in the simulation
@@ -73,6 +74,9 @@ public class RepairmanSim {
      * @param args 
      */
     public static void main(String[] args) {
+	
+	//Records the state of the system at every event time
+	List<Integer> systemStates = new ArrayList<Integer>();
 	
 	//Tracks the number of machines that have been fixed in this simulation
 	int numMachinesFixed = 0;
@@ -145,20 +149,49 @@ public class RepairmanSim {
 		
 		numMachinesFixed++;
 	    }
+	    
+	    //Record the state of the system (how many machines are working)
+	    systemStates.add(getSystemState());
 	}
+	
+	//Calculate the average number of working machines as well as steady-state probabilities
+	double averageWorking = 0.0;
+	HashMap<Integer, Double> steadyStates = new HashMap<Integer, Double>();
+	for (Integer state : systemStates) {
+	    averageWorking += state;
+	    
+	    if (steadyStates.containsKey(state)) {
+		steadyStates.put(state, steadyStates.get(state) + 1);
+	    } else {
+		steadyStates.put(state, 1.0);
+	    }
+	}
+	averageWorking = averageWorking / systemStates.size();
+	
+	//Calculate steady-state probabilities
+	for (Integer state : steadyStates.keySet()) {
+	    steadyStates.put(state, steadyStates.get(state)/systemStates.size());
+	}
+
 	System.out.println(numMachinesFixed + " machines fixed in " + currentTime);
+	System.out.println("Average number working machines: " + averageWorking);
+	
+	System.out.println("Steady-State probabilities:");
+	for (Integer state : steadyStates.keySet()) {
+	    System.out.println("    " + state + ": " + steadyStates.get(state));
+	}
 	
     }
     
     /**
-     * Determines the system state based on the number of machines that are currently in a state of failure.
+     * Determines the system state based on the number of machines that are currently working.
      * 
      * @return The number of machines that are currently broken
      */
     private static int getSystemState() {
 	int systemState = 0;
 	for (Machine machine : machines) {
-	    if (machine.isBroken()) {
+	    if (!machine.isBroken()) {
 		systemState++;
 	    }
 	}

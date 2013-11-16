@@ -14,7 +14,7 @@ public class Repairman {
     
     private Machine machineFixing;
     
-    private double nextEventTime = 0.0;
+    private double nextFixTime = 0.0;
     
     public boolean isWorking() {
 	return machineFixing != null;
@@ -29,10 +29,10 @@ public class Repairman {
     }
     
     public void setNextFixTime(double nextEventTime) {
-	this.nextEventTime = nextEventTime;
+	this.nextFixTime = nextEventTime;
     }
     
     public double getNextFixTime() {
-	return nextEventTime;
+	return nextFixTime;
     }
 }

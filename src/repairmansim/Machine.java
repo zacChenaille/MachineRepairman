@@ -14,7 +14,7 @@ public class Machine {
     
     private boolean broken = false;
     
-    private double nextEventTime = 0.00;
+    private double nextFailTime = 0.00;
     
     public void fail() {
 	broken = true;
@@ -29,10 +29,10 @@ public class Machine {
     }
     
     public void setNextFailureTime(double nextEventTime) {
-	this.nextEventTime = nextEventTime;
+	this.nextFailTime = nextEventTime;
     }
     
     public double getNextFailureTime() {
-	return this.nextEventTime;
+	return this.nextFailTime;
     }
 }
