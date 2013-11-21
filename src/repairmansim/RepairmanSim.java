@@ -16,7 +16,7 @@ import java.util.*;
 public class RepairmanSim {
 
     //The number of machines to fix before ending the simulation
-    private static final int stopAtMachinesFixed = 10000;
+    private static final int stopAtMachinesFixed = 100000;
     //Machine failure rate
     private static final double lambda = 0.4;
     //Repairman fix rate
@@ -75,9 +75,18 @@ public class RepairmanSim {
      */
     public static void main(String[] args) {
 	
-	//Records the state of the system at every event time
-	List<Integer> systemStates = new ArrayList<Integer>();
+	//Records how much time the system spends in each state
+	HashMap<Integer, Double> stateTimeMap = new HashMap<Integer, Double>();
+	for (int state = 0; state <= c; state++) {
+	    stateTimeMap.put(state, 0.0);
+	}
 	
+	//Records how much time a certain number of repairmen have been utilized
+	HashMap<Integer, Double> repairmenUsedMap = new HashMap<Integer, Double>();
+	for (int menUsed = 0; menUsed <= r; menUsed++) {
+	    repairmenUsedMap.put(menUsed, 0.0);
+	}
+
 	//Tracks the number of machines that have been fixed in this simulation
 	int numMachinesFixed = 0;
 	
@@ -100,6 +109,13 @@ public class RepairmanSim {
 	
 	//Continue the simulation until we have fixed the specified number of machines...
 	while (numMachinesFixed < stopAtMachinesFixed) {
+	    
+	    //Capture the data from the previous event time
+	    int previousSystemState = getSystemState();
+	    int previousMenUsed = repairmen.size() - idleRepairmen.size();
+
+	    double previousSimTime = currentTime;
+	    
 	    Object eventObject = eventList.poll();
 	    if (eventObject instanceof Machine) {
 		//This event is a machine failure
@@ -126,7 +142,7 @@ public class RepairmanSim {
 		//This event is the repairman fixing a machine
 		Repairman repairman = (Repairman)eventObject;
 		currentTime = repairman.getNextFixTime();
-
+		
 		//Schedule a time for the recently fixed machine to fail again
 		Machine fixedMachine = repairman.getMachineFixing();
 		fixedMachine.fixed();
@@ -149,44 +165,44 @@ public class RepairmanSim {
 		
 		numMachinesFixed++;
 	    }
-	    
-	    //Record the state of the system (how many machines are working)
-	    systemStates.add(getSystemState());
+	    //Update our record of system states (working machines and utilized repairmen)
+	    stateTimeMap.put(previousSystemState, stateTimeMap.get(previousSystemState) + (currentTime - previousSimTime));
+	    repairmenUsedMap.put(previousMenUsed, repairmenUsedMap.get(previousMenUsed) + (currentTime - previousSimTime));
 	}
 	
 	//Calculate the average number of working machines as well as steady-state probabilities
 	double averageWorking = 0.0;
-	HashMap<Integer, Double> steadyStates = new HashMap<Integer, Double>();
-	for (Integer state : systemStates) {
-	    averageWorking += state;
-	    
-	    if (steadyStates.containsKey(state)) {
-		steadyStates.put(state, steadyStates.get(state) + 1);
-	    } else {
-		steadyStates.put(state, 1.0);
-	    }
-	}
-	averageWorking = averageWorking / systemStates.size();
-	
+	HashMap<Integer, Double> steadyStateProbs = new HashMap<Integer, Double>();
 	//Calculate steady-state probabilities
-	for (Integer state : steadyStates.keySet()) {
-	    steadyStates.put(state, steadyStates.get(state)/systemStates.size());
+	for (Integer state : stateTimeMap.keySet()) {
+	    steadyStateProbs.put(state, stateTimeMap.get(state)/currentTime);
+	    averageWorking += state*steadyStateProbs.get(state);
+	}
+
+	//Calculate average repairmen utilization
+	double averageUtilization = 0.0;
+	HashMap<Integer, Double> steadyRepairmenUsedProbs = new HashMap<Integer, Double>();
+	for (Integer menUsed : repairmenUsedMap.keySet()) {
+	    if (repairmenUsedMap.get(menUsed) > 0) {
+		steadyRepairmenUsedProbs.put(menUsed, repairmenUsedMap.get(menUsed)/currentTime);
+		averageUtilization += menUsed*steadyRepairmenUsedProbs.get(menUsed);
+	    }
 	}
 
 	System.out.println(numMachinesFixed + " machines fixed in " + currentTime);
 	System.out.println("Average number working machines: " + averageWorking);
+	System.out.println("Average repairmen being utilized: " + averageUtilization);
 	
 	System.out.println("Steady-State probabilities:");
-	for (Integer state : steadyStates.keySet()) {
-	    System.out.println("    " + state + ": " + steadyStates.get(state));
+	for (Integer state : steadyStateProbs.keySet()) {
+	    System.out.println("    " + state + ": " + steadyStateProbs.get(state));
 	}
-	
     }
     
     /**
      * Determines the system state based on the number of machines that are currently working.
      * 
-     * @return The number of machines that are currently broken
+     * @return The number of machines that are currently working
      */
     private static int getSystemState() {
 	int systemState = 0;
